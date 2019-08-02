@@ -1,72 +1,43 @@
 #!/usr/bin/python
 #-*-coding:utf-8-*-
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
-# copyright 2017 Wshuai, Inc.
+# copyright 2015 Sengled, Inc.
 # All Rights Reserved.
 
-# @author: WShuai, Wshuai, Inc.
-
-import os
-import requests
+# @author: WShuai, Sengled, Inc.
 
 '''
-Http Client
-pip install requests
+Redis Connection
+pip install redis
 '''
-class HttpClient(object):
-    '''
-    host - str: 主机地址, 如: 127.0.0.1 或 www.baidu.com
-    port - str or int: 主机端口 
-    '''
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        return
 
-    def post(self, url, json_body):
-        '''
-        url - str: URL资源路径
-        json_body - json object: 参数 
-        '''
-        request_url = 'http://{0}:{1}/{2}'.format(self.host, self.port, url)
+import redis
+
+class RedisHandler(object):
+    def __init__(self, redis_addr, redis_port, redis_pwd, redis_db):
+        self.redis_addr = redis_addr
+        self.redis_port = redis_port
+        self.redis_pwd  = redis_pwd
+        self.redis_db = redis_db
+        self.redis_conn = None
+    def connect(self):
         try:
-            result = requests.post(request_url, data = json_body, timeout = 15)
-            print result.status_code
-            if result.status_code != 200:
-                data = False
-            else:
-                data = result.text
+            self.redis_conn = redis.Redis(host = self.redis_addr, port = self.redis_port, password = self.redis_pwd, db = self.redis_db)
+            self.redis_conn.ping()
+            print 'connect to redis successful.'
+            return True
         except Exception as e:
-            data = False
-        return data
-
-    def get(self, url, json_body, ssl = None):
-        '''
-        url - str: URL资源路径
-        json_body - json object: 参数 
-        '''
-        if url[0] == '/':
-            url = url[1:]
-
-        if not ssl:
-            request_url = 'http://{0}:{1}/{2}'.format(self.host, self.port, url)
-        else:
-            request_url = 'https://{0}:{1}/{2}'.format(self.host, self.port, url)
-        try:
-            result = requests.get(request_url, params = json_body, timeout = 15)
-            if result.status_code != 200:
-                data = False
-            else:
-                data = result.text
-        except Exception as e:
-            data = False
-        return data
+            print('connect to redis failed: {0}'.format(e))
+            return False
 
 '''
 例子
 '''
 import sys
 if __name__ == '__main__':
-    http_client = HttpClient('169.254.169.254', 80)
-    print http_client.get('/latest/meta-data/instance-id', {})
+    redis_handler = RedisHandler('127.0.0.1', 6379, None, 1)
+    if not redis_handler.connect():
+        print('conntect redis failed')
+        sys.exit(1)
+    print redis_handler.redis_conn.hgetall('peple')
     sys.exit(0)
